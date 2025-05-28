@@ -255,25 +255,45 @@
         <p>&copy; 2025 Mobile Attendance App</p>
     </footer>
     <script>
-        // --- In-memory storage (no persistence) ---
-        const users = {
-            "admin@example.com": { password: "admin123", role: "admin" }
-        };
-        const attendance = {};
-        const courses = ["Math 101", "Physics 201", "Chemistry 301"];
-        const professorCourses = {};
-        const studentCourses = {};
-
-        // --- Storage helpers (now in-memory) ---
-        function getUsers() { return users; }
-        function setUsers(newUsers) {
-            Object.keys(users).forEach(k => delete users[k]);
-            Object.assign(users, newUsers);
+        // --- Pre-populate localStorage with a default admin if empty ---
+        (function() {
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (Object.keys(users).length === 0) {
+                users["admin@example.com"] = {
+                    password: "admin123",
+                    role: "admin"
+                };
+                localStorage.setItem('users', JSON.stringify(users));
+                // Optionally, log this for debugging:
+                console.log("Default admin created: admin@example.com / admin123");
+            }
+            // Pre-populate courses if empty
+            if (!localStorage.getItem('courses')) {
+                localStorage.setItem('courses', JSON.stringify([
+                    "Math 101", "Physics 201", "Chemistry 301"
+                ]));
+                console.log("Default courses created.");
+            }
+            // Pre-populate professorCourses and studentCourses if needed
+            if (!localStorage.getItem('professorCourses')) {
+                localStorage.setItem('professorCourses', JSON.stringify({}));
+            }
+            if (!localStorage.getItem('studentCourses')) {
+                localStorage.setItem('studentCourses', JSON.stringify({}));
+            }
+        })();
+        // --- Storage helpers ---
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users') || '{}');
         }
-        function getAttendance() { return attendance; }
-        function setAttendance(newAtt) {
-            Object.keys(attendance).forEach(k => delete attendance[k]);
-            Object.assign(attendance, newAtt);
+        function setUsers(users) {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+        function getAttendance() {
+            return JSON.parse(localStorage.getItem('attendance') || '{}');
+        }
+        function setAttendance(att) {
+            localStorage.setItem('attendance', JSON.stringify(att));
         }
 
         // --- State ---
@@ -326,13 +346,14 @@
                 // Show only assigned courses for students
                 const courseSelect = document.getElementById('course');
                 courseSelect.innerHTML = '';
-                let courseList = [];
+                let courses = [];
                 if (loggedInRole === 'student') {
-                    courseList = studentCourses[loggedInUser] || [];
+                    const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+                    courses = studentCourses[loggedInUser] || [];
                 } else {
-                    courseList = courses;
+                    courses = JSON.parse(localStorage.getItem('courses') || '[]');
                 }
-                courseList.forEach(course => {
+                courses.forEach(course => {
                     const option = document.createElement('option');
                     option.value = course;
                     option.textContent = course;
@@ -406,6 +427,9 @@
             }
             loggedInUser = email;
             loggedInRole = selectedRole;
+            localStorage.setItem('currentUser', email);
+            localStorage.setItem('currentRole', selectedRole); // Add this line to store the role
+            
             // Enable make attendance link if student
             if (loggedInRole === 'student') {
                 document.getElementById('make-attendance').classList.remove('nav-disabled');
@@ -676,6 +700,8 @@
         function renderProfessorDashboard() {
             const users = getUsers();
             const attendance = getAttendance();
+            const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
+            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
             const assignedCourses = professorCourses[loggedInUser] || [];
             let html = '';
 
@@ -749,6 +775,8 @@
                     loggedInUser = null;
                     loggedInRole = null;
                     selectedRole = null;
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('currentRole');
                     document.getElementById('make-attendance').classList.add('nav-disabled');
                     showRoleSelection();
                     logoutLink.style.display = 'none';
