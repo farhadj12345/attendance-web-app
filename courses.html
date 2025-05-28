@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF0-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance Marking - Mobile Attendance Web-App</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(120deg, #e6e6fa 0%, #c3b1e1 100%); /* Changed to purple gradient */
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        header {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 24px 0 12px 0;
+            text-align: center;
+        }
+        nav {
+            margin-top: 10px;
+        }
+        nav a {
+            color: #8A2BE2; /* Changed to Blue Violet */
+            text-decoration: none;
+            margin: 0 18px;
+            font-weight: 500;
+            font-size: 1.1em;
+            transition: color 0.2s;
+        }
+        nav a:hover {
+            color: #6A0DAD; /* Changed to Darker Purple */
+            text-decoration: underline;
+        }
+        .container {
+            max-width: 420px;
+            margin: 40px auto; /* Changed to auto for top/bottom margin */
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 6px 32px rgba(0,0,0,0.09);
+            padding: 36px 32px 28px 32px;
+            flex-grow: 1; /* Allows container to grow and push footer down */
+        }
+        h1, h2 {
+            color: #6A0DAD; /* Changed to Darker Purple */
+            margin-bottom: 18px;
+            text-align: center;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        input[type="email"], input[type="password"], select {
+            padding: 10px;
+            border: 1px solid #d8bfd8; /* Changed to Thistle */
+            border-radius: 6px;
+            font-size: 1em;
+            background: #f8f0fc; /* Changed to Lighter Purple/Pink */
+            transition: border 0.2s;
+        }
+        input[type="email"]:focus, input[type="password"]:focus, select:focus {
+            border: 1.5px solid #8A2BE2; /* Changed to Blue Violet */
+            outline: none;
+        }
+        .cta-button, button[type="submit"] {
+            background: linear-gradient(90deg, #8A2BE2 60%, #9932CC 100%); /* Changed to purple gradient */
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 2px 8px rgba(138,43,226,0.08); /* Adjusted shadow color */
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .cta-button:hover, button[type="submit"]:hover {
+            background: linear-gradient(90deg, #6A0DAD 60%, #8A2BE2 100%); /* Changed to darker purple gradient */
+            box-shadow: 0 4px 16px rgba(138,43,226,0.13); /* Adjusted shadow color */
+        }
+        .hidden {
+            display: none;
+        }
+        #attendance-result {
+            margin-top: 18px;
+            background: #f3e6ff; /* Changed to Pale Lavender */
+            color: #6A0DAD; /* Changed to Darker Purple */
+            padding: 14px;
+            border-radius: 6px;
+            font-weight: 500;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(138,43,226,0.07); /* Adjusted shadow color */
+        }
+        .status-message {
+            margin-bottom: 15px;
+            color: #dc3545; /* Default for error/warning (kept red) */
+            text-align: center;
+        }
+        .radio-group {
+            display: flex;
+            gap: 24px;
+            margin: 8px 0 0 0;
+        }
+        .radio-group label {
+            font-weight: 400;
+            color: #444;
+        }
+        @media (max-width: 600px) {
+            .container {
+                max-width: 98vw;
+                padding: 18px 6vw 18px 6vw;
+            }
+            nav a {
+                margin: 0 8px;
+            }
+        }
+        footer {
+            text-align: center;
+            color: #A9A9A9; /* Adjusted to a neutral dark gray */
+            font-size: 0.98em;
+            margin: 40px 0 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Mark Your Attendance</h1>
+        <nav>
+            <a href="index.html">Back to Dashboard</a>
+            <a href="#" id="logout-link">Logout</a>
+        </nav>
+    </header>
+
+    <div class="container">
+        <div id="location-status" class="status-message"></div>
+        
+        <form id="attendance-form" class="hidden"> <div class="form-group">
+                <label for="course">Select Course:</label>
+                <select id="course" name="course" required>
+                    </select>
+            </div>
+
+            <div class="radio-group">
+                <label>
+                    <input type="radio" name="status" value="Present" required> Present
+                </label>
+                <label>
+                    <input type="radio" name="status" value="Absent" required> Absent
+                </label>
+            </div>
+
+            <button type="submit">Mark Attendance</button>
+        </form>
+
+        <div id="attendance-result" class="hidden"></div>
+    </div>
+
+    <footer>
+        <p>&copy; 2025 Mobile Attendance App</p>
+    </footer>
+
+    <script>
+        // --- Storage helpers ---
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users') || '{}');
+        }
+        function setUsers(users) {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+        function getAttendance() {
+            return JSON.parse(localStorage.getItem('attendance') || '{}');
+        }
+        function setAttendance(att) {
+            localStorage.setItem('attendance', JSON.stringify(att));
+        }
+
+        // --- State ---
+        let loggedInUser = localStorage.getItem('currentUser');
+        let loggedInRole = localStorage.getItem('currentRole'); // Get role from localStorage
+
+        // --- Element References ---
+        const locationStatusDiv = document.getElementById('location-status');
+        const attendanceForm = document.getElementById('attendance-form');
+        const courseSelect = document.getElementById('course');
+        const attendanceResultDiv = document.getElementById('attendance-result');
+        const logoutLink = document.getElementById('logout-link');
+
+        // --- Location Restriction Helpers ---
+        const ALLOWED_LOCATIONS = [
+            {
+                name: "Home (Primary)",
+                lat: 39.9946,
+                lng: 32.8174,
+                radius: 100 // meters
+            },
+            {
+                name: "Home (Alternate / Nearby)",
+                lat: 39.99595,
+                lng: 32.81676,
+                radius: 100 // meters
+            },
+            {
+                name: "Ostim Teknik Üniversitesi",
+                lat: 39.9617,
+                lng: 32.7426,
+                radius: 500 // meters
+            },
+            {
+                name: "Coffee Lab Çankaya",
+                lat: 39.91670,
+                lng: 32.85583,
+                radius: 100 // meters
+            }
+        ];
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // meters
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function checkLocation(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            const inRange = ALLOWED_LOCATIONS.some(location => {
+                const distance = calculateDistance(
+                    userLat, userLng,
+                    location.lat, location.lng
+                );
+                return distance <= location.radius;
+            });
+
+            if (inRange) {
+                locationStatusDiv.style.color = '#9370DB'; /* Changed to Medium Purple for success */
+                locationStatusDiv.textContent = 'You are in an allowed location ✓';
+                attendanceForm.classList.remove('hidden'); // Show the form
+            } else {
+                locationStatusDiv.style.color = '#dc3545';
+                locationStatusDiv.textContent = 'You must be at OSTİM Technical University or your home to mark attendance';
+                attendanceForm.classList.add('hidden'); // Hide the form
+            }
+        }
+
+        // --- Initialization and Event Listeners ---
+        document.addEventListener('DOMContentLoaded', function() {
+            // Redirect to login if not logged in or not a student
+            if (!loggedInUser || loggedInRole !== 'student') {
+                alert('Please log in as a student to access this page.');
+                window.location.href = 'index.html'; // Redirect to the main login/role selection page
+                return;
+            }
+
+            // Populate course options
+            courseSelect.innerHTML = '';
+            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+            const coursesForUser = studentCourses[loggedInUser] || [];
+
+            if (coursesForUser.length === 0) {
+                locationStatusDiv.textContent = 'You have no courses assigned to mark attendance.';
+                locationStatusDiv.style.color = '#dc3545';
+                attendanceForm.classList.add('hidden');
+            } else {
+                coursesForUser.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course;
+                    option.textContent = course;
+                    courseSelect.appendChild(option);
+                });
+
+                // Request geolocation
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        checkLocation,
+                        error => {
+                            locationStatusDiv.textContent = 'Please enable location access to mark attendance.';
+                            attendanceForm.classList.add('hidden');
+                            console.error("Geolocation error:", error);
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            maximumAge: 30000,
+                            timeout: 27000
+                        }
+                    );
+                } else {
+                    locationStatusDiv.textContent = 'Location services are not supported by your browser.';
+                    attendanceForm.classList.add('hidden');
+                }
+            }
+        });
+
+        // --- Attendance Form Submission ---
+        attendanceForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    const inRange = ALLOWED_LOCATIONS.some(location => {
+                        const distance = calculateDistance(
+                            userLat, userLng,
+                            location.lat, location.lng
+                        );
+                        return distance <= location.radius;
+                    });
+
+                    if (inRange) {
+                        const course = courseSelect.value;
+                        const status = this.elements['status'].value;
+                        const attendance = getAttendance();
+                        if (!attendance[loggedInUser]) attendance[loggedInUser] = {};
+                        attendance[loggedInUser][course] = {
+                            status: status,
+                            timestamp: new Date().toLocaleString(),
+                            location: `${userLat.toFixed(4)},${userLng.toFixed(4)}` // Store with some precision
+                        };
+                        setAttendance(attendance);
+                        attendanceResultDiv.textContent = `Attendance marked as "${status}" for course "${course}".`;
+                        attendanceResultDiv.classList.remove('hidden');
+                        attendanceForm.classList.add('hidden'); // Hide form after submission
+                    } else {
+                        alert('You must be at an allowed location to mark attendance.');
+                    }
+                },
+                error => {
+                    alert('Unable to verify location. Please enable location access.');
+                    console.error("Geolocation error on submit:", error);
+                }
+            );
+        });
+
+        // --- Logout Logic ---
+        logoutLink.addEventListener('click', function(e) {
+            e.preventDefault();
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentRole');
+            window.location.href = 'index.html'; // Redirect to the main login page
+        });
+    </script>
+</body>
+</html>
