@@ -255,7 +255,7 @@
         <p>&copy; 2025 Mobile Attendance App</p>
     </footer>
     <script>
-        // --- Pre-populate localStorage with default users if empty ---
+        // --- Pre-populate localStorage with a default admin if empty ---
         (function() {
             const users = JSON.parse(localStorage.getItem('users') || '{}');
             if (Object.keys(users).length === 0) {
@@ -263,16 +263,9 @@
                     password: "admin123",
                     role: "admin"
                 };
-                users["student@example.com"] = {
-                    password: "student123",
-                    role: "student"
-                };
-                users["professor@example.com"] = {
-                    password: "prof123",
-                    role: "professor"
-                };
                 localStorage.setItem('users', JSON.stringify(users));
-                console.log("Default users created: admin@example.com / admin123, student@example.com / student123, professor@example.com / prof123");
+                // Optionally, log this for debugging:
+                console.log("Default admin created: admin@example.com / admin123");
             }
             // Pre-populate courses if empty
             if (!localStorage.getItem('courses')) {
