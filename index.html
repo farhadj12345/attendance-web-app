@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -402,6 +403,8 @@
             localStorage.setItem('currentUser', email);
             localStorage.setItem('currentRole', selectedRole); // Add this line to store the role
             
+            updateLogoutLink(); // Add this line
+            
             // Enable make attendance link if student
             if (loggedInRole === 'student') {
                 document.getElementById('make-attendance').classList.remove('nav-disabled');
@@ -737,10 +740,60 @@
             showSection('login');
         });
 
+        // Add these functions near the top with other helper functions
+        function updateLogoutLink() {
+            const logoutLink = document.getElementById('logout-link');
+            if (loggedInUser) {
+                logoutLink.style.display = 'inline';
+            } else {
+                logoutLink.style.display = 'none';
+            }
+        }
+
+        function handleLogout() {
+            loggedInUser = null;
+            loggedInRole = null;
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentRole');
+            document.getElementById('make-attendance').classList.add('nav-disabled');
+            showRoleSelection();
+            // Reset forms
+            document.getElementById('login-form').reset();
+            document.getElementById('register-form').reset();
+            document.getElementById('forgot-password-form').reset();
+        }
+
+        // Add this with other event listeners
+        document.getElementById('logout-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            handleLogout();
+        });
+
         // Initialize app on load
         showRoleSelection();
         updateLogoutLink();
 
+        // Add this to check for existing login on page load (near the bottom of the script)
+        window.addEventListener('load', function() {
+            const savedUser = localStorage.getItem('currentUser');
+            const savedRole = localStorage.getItem('currentRole');
+            if (savedUser && savedRole) {
+                loggedInUser = savedUser;
+                loggedInRole = savedRole;
+                selectedRole = savedRole;
+                updateLogoutLink();
+                if (savedRole === 'student') {
+                    document.getElementById('make-attendance').classList.remove('nav-disabled');
+                    showSection('make-attendance');
+                } else if (savedRole === 'professor') {
+                    showSection('professor-dashboard');
+                } else if (savedRole === 'admin') {
+                    window.location.href = 'admin.html';
+                }
+            } else {
+                showRoleSelection();
+            }
+        });
     </script>
 </body>
 </html>
