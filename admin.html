@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Mobile Attendance App</title>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(120deg, #e6e6fa 0%, #c3b1e1 100%);
+            margin: 0;
+            padding: 20px;
+        }
+        .admin-container {
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 6px 32px rgba(0,0,0,0.09);
+            padding: 40px;
+            margin: 20px auto;
+            max-width: 800px;
+        }
+        .nav-buttons {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        .nav-btn {
+            background: #6A0DAD;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+        .nav-btn:hover {
+            background: #8A2BE2;
+        }
+        h1, h2 {
+            color: #6A0DAD;
+        }
+        .admin-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f8f0fc;
+            border-radius: 8px;
+        }
+        
+        .user-list, .course-list {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        
+        .user-list th, .user-list td,
+        .course-list th, .course-list td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        
+        .action-btn {
+            padding: 5px 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+        
+        .edit-btn { background: #6A0DAD; color: white; }
+        .delete-btn { background: #dc3545; color: white; }
+        
+        .course-checkbox {
+            margin-right: 10px;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            position: relative;
+            background: white;
+            margin: 15% auto;
+            padding: 20px;
+            width: 70%;
+            max-width: 500px;
+            border-radius: 8px;
+        }
+        
+        .close-modal {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            font-size: 20px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="nav-buttons">
+        <button class="nav-btn" onclick="returnToMain()">Return to Main App</button>
+        <button class="nav-btn" onclick="logout()">Logout</button>
+    </div>
+    
+    <div class="admin-container">
+        <h1>Admin Dashboard</h1>
+        <div id="admin-content">
+            <!-- Admin dashboard content will go here -->
+            <h2>Welcome, Admin</h2>
+            <p>This is your administration dashboard.</p>
+        </div>
+        
+        <!-- User Management Section -->
+        <div class="admin-section">
+            <h2>User Management</h2>
+            <button onclick="showAddUserModal()" class="nav-btn">Add New User</button>
+            <table class="user-list">
+                <thead>
+                    <tr>
+                        <th>Email</th>
+                        <th>Role</th>
+                        <th>Assigned Courses</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="userTableBody">
+                    <!-- User rows will be populated here -->
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Course Management Section -->
+        <div class="admin-section">
+            <h2>Course Management</h2>
+            <div style="margin-bottom: 15px;">
+                <input type="text" id="newCourseName" placeholder="New course name">
+                <button onclick="addNewCourse()" class="nav-btn">Add Course</button>
+            </div>
+            <table class="course-list">
+                <thead>
+                    <tr>
+                        <th>Course Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="courseTableBody">
+                    <!-- Course rows will be populated here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Add/Edit User Modal -->
+    <div id="userModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" onclick="closeUserModal()">&times;</span>
+            <h2 id="modalTitle">Add New User</h2>
+            <form id="userForm">
+                <div style="margin-bottom: 15px;">
+                    <label>Email:</label>
+                    <input type="email" id="userEmail" required>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Password:</label>
+                    <input type="password" id="userPassword" required>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <label>Role:</label>
+                    <select id="userRole">
+                        <option value="student">Student</option>
+                        <option value="professor">Professor</option>
+                        <option value="admin">Admin</option>
+                    </select>
+                </div>
+                <div id="courseAssignment" style="margin-bottom: 15px;">
+                    <label>Assigned Courses:</label>
+                    <div id="courseCheckboxes">
+                        <!-- Course checkboxes will be populated here -->
+                    </div>
+                </div>
+                <button type="submit" class="nav-btn">Save User</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- State and Initialization ---
+        let currentEditingUser = null;
+        
+        function initializeAdmin() {
+            const currentUser = localStorage.getItem('currentUser');
+            const currentRole = localStorage.getItem('currentRole');
+            
+            if (!currentUser || currentRole !== 'admin') {
+                alert('Please login as admin first');
+                window.location.href = 'index.html';
+                return;
+            }
+            
+            // Initialize storage if needed
+            if (!localStorage.getItem('users')) {
+                localStorage.setItem('users', JSON.stringify({
+                    'admin@app.com': { password: 'adminpassword', role: 'admin' }
+                }));
+            }
+            if (!localStorage.getItem('courses')) {
+                localStorage.setItem('courses', JSON.stringify(['Mathematics', 'Science', 'History']));
+            }
+            if (!localStorage.getItem('studentCourses')) {
+                localStorage.setItem('studentCourses', '{}');
+            }
+            if (!localStorage.getItem('professorCourses')) {
+                localStorage.setItem('professorCourses', '{}');
+            }
+            
+            refreshUserTable();
+            refreshCourseTable();
+        }
+
+        // --- User Management Functions ---
+        function refreshUserTable() {
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+            const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
+            let html = '';
+            
+            Object.entries(users).forEach(([email, user]) => {
+                const assignedCourses = user.role === 'student' ? 
+                    (studentCourses[email] || []) : 
+                    user.role === 'professor' ? 
+                    (professorCourses[email] || []) : [];
+                
+                html += `<tr>
+                    <td>${email}</td>
+                    <td>${user.role}</td>
+                    <td>${assignedCourses.join(', ') || '-'}</td>
+                    <td>
+                        <button onclick="editUser('${email}')" class="action-btn edit-btn">Edit</button>
+                        <button onclick="deleteUser('${email}')" class="action-btn delete-btn">Delete</button>
+                    </td>
+                </tr>`;
+            });
+            
+            document.getElementById('userTableBody').innerHTML = html;
+        }
+
+        function showAddUserModal(email = null) {
+            currentEditingUser = email;
+            const modal = document.getElementById('userModal');
+            const form = document.getElementById('userForm');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            modalTitle.textContent = email ? 'Edit User' : 'Add New User';
+            form.reset();
+            
+            if (email) {
+                const users = JSON.parse(localStorage.getItem('users'));
+                const user = users[email];
+                document.getElementById('userEmail').value = email;
+                document.getElementById('userEmail').disabled = true;
+                document.getElementById('userRole').value = user.role;
+                document.getElementById('userPassword').required = false;
+                document.getElementById('userPassword').placeholder = 'Leave blank to keep unchanged';
+            } else {
+                document.getElementById('userEmail').disabled = false;
+                document.getElementById('userPassword').required = true;
+                document.getElementById('userPassword').placeholder = 'Password';
+            }
+            
+            populateCourseCheckboxes(email);
+            modal.style.display = 'block';
+        }
+
+        function closeUserModal() {
+            document.getElementById('userModal').style.display = 'none';
+            currentEditingUser = null;
+        }
+
+        function populateCourseCheckboxes(email = null) {
+            const courses = JSON.parse(localStorage.getItem('courses') || '[]');
+            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+            const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
+            
+            let assignedCourses = [];
+            if (email) {
+                const users = JSON.parse(localStorage.getItem('users'));
+                const user = users[email];
+                assignedCourses = user.role === 'student' ? 
+                    (studentCourses[email] || []) : 
+                    (professorCourses[email] || []);
+            }
+            
+            let html = '';
+            courses.forEach(course => {
+                html += `
+                    <div>
+                        <input type="checkbox" 
+                               id="course_${course}" 
+                               value="${course}" 
+                               class="course-checkbox"
+                               ${assignedCourses.includes(course) ? 'checked' : ''}>
+                        <label for="course_${course}">${course}</label>
+                    </div>`;
+            });
+            
+            document.getElementById('courseCheckboxes').innerHTML = html;
+        }
+
+        // --- Course Management Functions ---
+        function refreshCourseTable() {
+            const courses = JSON.parse(localStorage.getItem('courses') || '[]');
+            let html = '';
+            
+            courses.forEach(course => {
+                html += `<tr>
+                    <td>${course}</td>
+                    <td>
+                        <button onclick="deleteCourse('${course}')" class="action-btn delete-btn">Delete</button>
+                    </td>
+                </tr>`;
+            });
+            
+            document.getElementById('courseTableBody').innerHTML = html;
+        }
+
+        function addNewCourse() {
+            const courseInput = document.getElementById('newCourseName');
+            const courseName = courseInput.value.trim();
+            
+            if (!courseName) {
+                alert('Please enter a course name');
+                return;
+            }
+            
+            const courses = JSON.parse(localStorage.getItem('courses') || '[]');
+            if (courses.includes(courseName)) {
+                alert('This course already exists');
+                return;
+            }
+            
+            courses.push(courseName);
+            localStorage.setItem('courses', JSON.stringify(courses));
+            courseInput.value = '';
+            refreshCourseTable();
+        }
+
+        function deleteCourse(courseName) {
+            if (!confirm(`Are you sure you want to delete the course "${courseName}"?`)) {
+                return;
+            }
+            
+            // Remove course from main list
+            const courses = JSON.parse(localStorage.getItem('courses') || '[]');
+            const updatedCourses = courses.filter(c => c !== courseName);
+            localStorage.setItem('courses', JSON.stringify(updatedCourses));
+            
+            // Remove course from student assignments
+            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+            Object.keys(studentCourses).forEach(email => {
+                studentCourses[email] = studentCourses[email].filter(c => c !== courseName);
+            });
+            localStorage.setItem('studentCourses', JSON.stringify(studentCourses));
+            
+            // Remove course from professor assignments
+            const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
+            Object.keys(professorCourses).forEach(email => {
+                professorCourses[email] = professorCourses[email].filter(c => c !== courseName);
+            });
+            localStorage.setItem('professorCourses', JSON.stringify(professorCourses));
+            
+            // Remove course attendance records
+            const attendance = JSON.parse(localStorage.getItem('attendance') || '{}');
+            Object.keys(attendance).forEach(email => {
+                if (attendance[email][courseName]) {
+                    delete attendance[email][courseName];
+                }
+            });
+            localStorage.setItem('attendance', JSON.stringify(attendance));
+            
+            refreshCourseTable();
+            refreshUserTable();
+        }
+
+        // --- Form Submission Handlers ---
+        document.getElementById('userForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('userEmail').value;
+            const password = document.getElementById('userPassword').value;
+            const role = document.getElementById('userRole').value;
+            
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            
+            if (!currentEditingUser && users[email]) {
+                alert('This email is already registered');
+                return;
+            }
+            
+            // Update or create user
+            users[email] = {
+                password: password || users[email]?.password,
+                role: role
+            };
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Handle course assignments
+            const selectedCourses = Array.from(document.querySelectorAll('.course-checkbox:checked'))
+                .map(cb => cb.value);
+            
+            if (role === 'student') {
+                const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+                studentCourses[email] = selectedCourses;
+                localStorage.setItem('studentCourses', JSON.stringify(studentCourses));
+            } else if (role === 'professor') {
+                const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
+                professorCourses[email] = selectedCourses;
+                localStorage.setItem('professorCourses', JSON.stringify(professorCourses));
+            }
+            
+            closeUserModal();
+            refreshUserTable();
+        });
+
+        function deleteUser(email) {
+            if (!confirm(`Are you sure you want to delete user "${email}"?`)) {
+                return;
+            }
+            
+            // Remove user from users list
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            delete users[email];
+            localStorage.setItem('users', JSON.stringify(users));
+            
+            // Remove user's course assignments
+            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+            delete studentCourses[email];
+            localStorage.setItem('studentCourses', JSON.stringify(studentCourses));
+            
+            const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
+            delete professorCourses[email];
+            localStorage.setItem('professorCourses', JSON.stringify(professorCourses));
+            
+            // Remove user's attendance records
+            const attendance = JSON.parse(localStorage.getItem('attendance') || '{}');
+            delete attendance[email];
+            localStorage.setItem('attendance', JSON.stringify(attendance));
+            
+            refreshUserTable();
+        }
+
+        function editUser(email) {
+            showAddUserModal(email);
+        }
+
+        // Initialize admin dashboard
+        window.onload = initializeAdmin;
+
+        function returnToMain() {
+            window.location.href = 'index.html';
+        }
+
+        function logout() {
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('currentRole');
+            window.location.href = 'index.html';
+        }
+    </script>
+</body>
+</html>
