@@ -68,6 +68,27 @@ All data is stored in localStorage:
 <!-- ...other files... -->
 ```
 
+## Accessing the Web App on Mobile via GitHub Pages
+
+You can easily access this attendance web app on your mobile device using GitHub Pages. Once the project is deployed to GitHub Pages, it is available as a public website. To open the app on your phone or tablet, simply navigate to the GitHub Pages URL in your mobile browser. The URL will typically be:
+
+```
+https://<your-github-username>.github.io/<repository-name>/
+```
+
+For example, if your GitHub username is `farhadj12345` and your repository is `attendance-web-app`, the URL would be:
+
+```
+https://farhadj12345.github.io/attendance-web-app/
+```
+
+Open this link in your mobile browser (such as Chrome or Safari). The app is designed to be mobile-friendly and will automatically adjust its layout for smaller screens. You do not need to install anything—just use your browser.
+
+**Note:**  
+- Make sure your repository is public and GitHub Pages is enabled in your repository settings.
+- If you make changes to the app, it may take a few minutes for updates to appear on GitHub Pages.
+- For full functionality (such as geolocation), you may need to allow location permissions in your mobile browser.
+
 ## Contributors
 
 - Ahrafal Amal (@ahrafal-amal)

@@ -255,46 +255,8 @@
         <p>&copy; 2025 Mobile Attendance App</p>
     </footer>
     <script>
-        // --- Pre-populate localStorage with a default admin if empty ---
-        (function() {
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            if (Object.keys(users).length === 0) {
-                users["admin@example.com"] = {
-                    password: "admin123",
-                    role: "admin"
-                };
-                localStorage.setItem('users', JSON.stringify(users));
-                // Optionally, log this for debugging:
-                console.log("Default admin created: admin@example.com / admin123");
-            }
-            // Pre-populate courses if empty
-            if (!localStorage.getItem('courses')) {
-                localStorage.setItem('courses', JSON.stringify([
-                    "Math 101", "Physics 201", "Chemistry 301"
-                ]));
-                console.log("Default courses created.");
-            }
-            // Pre-populate professorCourses and studentCourses if needed
-            if (!localStorage.getItem('professorCourses')) {
-                localStorage.setItem('professorCourses', JSON.stringify({}));
-            }
-            if (!localStorage.getItem('studentCourses')) {
-                localStorage.setItem('studentCourses', JSON.stringify({}));
-            }
-        })();
-        // --- Storage helpers ---
-        function getUsers() {
-            return JSON.parse(localStorage.getItem('users') || '{}');
-        }
-        function setUsers(users) {
-            localStorage.setItem('users', JSON.stringify(users));
-        }
-        function getAttendance() {
-            return JSON.parse(localStorage.getItem('attendance') || '{}');
-        }
-        function setAttendance(att) {
-            localStorage.setItem('attendance', JSON.stringify(att));
-        }
+        // --- API base URL ---
+        const API_BASE = "http://localhost:3000/api";
 
         // --- State ---
         let loggedInUser = null;
@@ -386,6 +348,17 @@
             updateLogoutLink();
         }
 
+        // --- Helper: Fetch wrapper ---
+        async function api(url, options = {}) {
+            const res = await fetch(API_BASE + url, {
+                headers: { "Content-Type": "application/json" },
+                credentials: "omit",
+                ...options
+            });
+            if (!res.ok) throw await res.json();
+            return res.json();
+        }
+
         // --- Role selection logic ---
         document.getElementById('role-select-btn').onclick = function() {
             const role = document.querySelector('input[name="role-select"]:checked')?.value;
@@ -412,330 +385,110 @@
         });
 
         // --- Login logic ---
-        document.getElementById('login-form').addEventListener('submit', function(e) {
+        document.getElementById('login-form').addEventListener('submit', async function(e) {
             e.preventDefault();
             const email = document.getElementById('login-email').value.trim();
             const password = document.getElementById('login-password').value;
-            const users = getUsers();
             const errorDiv = document.getElementById('login-error');
             errorDiv.classList.add('hidden');
-            console.log('Users at login:', users, 'Trying:', email, password, selectedRole);
-            if (!users[email] || users[email].password !== password || users[email].role !== selectedRole) {
-                errorDiv.textContent = "Wrong password or email.";
+            try {
+                await api('/login', {
+                    method: "POST",
+                    body: JSON.stringify({ email, password, role: selectedRole })
+                });
+                loggedInUser = email;
+                loggedInRole = selectedRole;
+                // Optionally store session in-memory or in sessionStorage
+                if (loggedInRole === 'student') {
+                    document.getElementById('make-attendance').classList.remove('nav-disabled');
+                    window.location.href = 'index.html';
+                } else if (loggedInRole === 'admin') {
+                    window.location.href = 'admin.html';
+                } else {
+                    window.location.href = 'index.html';
+                }
+            } catch (err) {
+                errorDiv.textContent = err.error || "Wrong password or email.";
                 errorDiv.classList.remove('hidden');
-                return;
-            }
-            loggedInUser = email;
-            loggedInRole = selectedRole;
-            localStorage.setItem('currentUser', email);
-            localStorage.setItem('currentRole', selectedRole); // Add this line to store the role
-            
-            // Enable make attendance link if student
-            if (loggedInRole === 'student') {
-                document.getElementById('make-attendance').classList.remove('nav-disabled');
-                window.location.href = 'index.html';
-            } else if (loggedInRole === 'admin') {
-                window.location.href = 'admin.html';
-            } else {
-                window.location.href = 'index.html';
             }
         });
 
-        // --- Forgot Password logic ---
-        document.getElementById('forgot-password-form').addEventListener('submit', function(e) {
+        // --- Register logic (admin only) ---
+        document.getElementById('register-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            const email = document.getElementById('forgot-email').value.trim();
-            const newPassword = document.getElementById('forgot-new-password').value;
-            const users = getUsers();
-            const errorDiv = document.getElementById('forgot-password-error');
-            const successDiv = document.getElementById('forgot-password-success');
+            const email = document.getElementById('register-email').value.trim();
+            const password = document.getElementById('register-password').value;
+            const errorDiv = document.getElementById('register-error');
             errorDiv.classList.add('hidden');
-            successDiv.classList.add('hidden');
-            if (!users[email]) {
-                errorDiv.textContent = "No user found with this email.";
+            try {
+                await api('/register', {
+                    method: "POST",
+                    body: JSON.stringify({ email, password, role: "student" }) // or allow role selection
+                });
+                errorDiv.style.color = "green";
+                errorDiv.textContent = "Registration successful!";
                 errorDiv.classList.remove('hidden');
-                return;
-            }
-            if (newPassword.length < 6) {
-                errorDiv.textContent = "Password must be at least 6 characters.";
+            } catch (err) {
+                errorDiv.style.color = "red";
+                errorDiv.textContent = err.error || "Registration failed.";
                 errorDiv.classList.remove('hidden');
-                return;
             }
-            users[email].password = newPassword;
-            setUsers(users);
-            successDiv.textContent = "Password reset successful! You can now login.";
-            successDiv.classList.remove('hidden');
-            setTimeout(() => {
-                showSection('login');
-            }, 1200);
         });
+
+        // --- Fetch courses for attendance form ---
+        async function loadCourses() {
+            const res = await api('/courses');
+            return res.courses;
+        }
 
         // --- Attendance logic ---
-        document.getElementById('attendance-form').addEventListener('submit', function(e) {
+        document.getElementById('attendance-form').addEventListener('submit', async function(e) {
             e.preventDefault();
-            navigator.geolocation.getCurrentPosition(
-                position => {
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    
-                    const inRange = ALLOWED_LOCATIONS.some(location => {
-                        const distance = calculateDistance(
-                            userLat, userLng,
-                            location.lat, location.lng
-                        );
-                        return distance <= location.radius;
-                    });
-
-                    if (inRange) {
-                        const course = document.getElementById('course').value;
-                        const status = this.elements['status'].value;
-                        const resultDiv = document.getElementById('attendance-result');
-                        const attendance = getAttendance();
-                        if (!attendance[loggedInUser]) attendance[loggedInUser] = {};
-                        attendance[loggedInUser][course] = {
-                            status: status,
-                            timestamp: new Date().toLocaleString(),
+            navigator.geolocation.getCurrentPosition(async position => {
+                const userLat = position.coords.latitude;
+                const userLng = position.coords.longitude;
+                const course = document.getElementById('course').value;
+                const status = this.elements['status'].value;
+                try {
+                    await api('/attendance', {
+                        method: "POST",
+                        body: JSON.stringify({
+                            email: loggedInUser,
+                            course,
+                            status,
                             location: `${userLat},${userLng}`
-                        };
-                        setAttendance(attendance);
-                        resultDiv.textContent = `Attendance marked as "${status}" for course "${course}".`;
-                        resultDiv.classList.remove('hidden');
-                        this.classList.add('hidden');
-                    } else {
-                        alert('You must be at an allowed location to mark attendance.');
-                    }
-                },
-                error => {
-                    alert('Unable to verify location. Please enable location access.');
+                        })
+                    });
+                    const resultDiv = document.getElementById('attendance-result');
+                    resultDiv.textContent = `Attendance marked as "${status}" for course "${course}".`;
+                    resultDiv.classList.remove('hidden');
+                    this.classList.add('hidden');
+                } catch (err) {
+                    alert(err.error || "Failed to mark attendance.");
                 }
-            );
+            }, () => alert("Unable to verify location."));
         });
 
-        // --- Location restriction helpers ---
-        const ALLOWED_LOCATIONS = [
-            {
-                name: "Home (Primary)",
-                lat: 39.9946,
-                lng: 32.8174,
-                radius: 100 // meters
-            },
-            {
-                name: "Home (Alternate / Nearby)",
-                lat: 39.99595,
-                lng: 32.81676,
-                radius: 100 // meters
-            },
-            {
-                name: "Ostim Teknik Üniversitesi",
-                lat: 39.9617,
-                lng: 32.7426,
-                radius: 10000 // meters (max radius for full campus and area)
-            },
-            {
-                name: "Coffee Lab Çankaya",
-                lat: 39.91670,
-                lng: 32.85583,
-                radius: 100 // meters
-            }
-        ];
-
-        function calculateDistance(lat1, lon1, lat2, lon2) {
-            const R = 6371e3; // meters
-            const φ1 = lat1 * Math.PI/180;
-            const φ2 = lat2 * Math.PI/180;
-            const Δφ = (lat2-lat1) * Math.PI/180;
-            const Δλ = (lon2-lon1) * Math.PI/180;
-            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
-                      Math.cos(φ1) * Math.cos(φ2) *
-                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
-            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-            return R * c;
-        }
-
-        function checkLocation(position) {
-            const userLat = position.coords.latitude;
-            const userLng = position.coords.longitude;
-            const inRange = ALLOWED_LOCATIONS.some(location => {
-                const distance = calculateDistance(
-                    userLat, userLng,
-                    location.lat, location.lng
-                );
-                return distance <= location.radius;
+        // --- Example: Load courses into select on attendance page ---
+        async function showAttendanceSection() {
+            const courseSelect = document.getElementById('course');
+            courseSelect.innerHTML = '';
+            const courses = await loadCourses();
+            courses.forEach(course => {
+                const option = document.createElement('option');
+                option.value = course;
+                option.textContent = course;
+                courseSelect.appendChild(option);
             });
-
-            const locationStatus = document.getElementById('location-status');
-            const attendanceForm = document.getElementById('attendance-form');
-
-            if (inRange) {
-                locationStatus.style.color = '#9370DB'; /* Changed to Medium Purple for success */
-                locationStatus.textContent = 'You are in an allowed location ✓';
-                attendanceForm.style.display = 'block';
-            } else {
-                locationStatus.style.color = '#dc3545';
-                locationStatus.textContent = 'You must be at OSTİM Technical University or your home to mark attendance';
-                attendanceForm.style.display = 'none';
-            }
         }
 
-        function requestLocation() {
-            if ("geolocation" in navigator) {
-                const locationPrompt = document.getElementById('location-prompt');
-                const locationStatus = document.getElementById('location-status');
-                const attendanceForm = document.getElementById('attendance-form');
-
-                // First check if we already have permission
-                navigator.permissions.query({ name: 'geolocation' })
-                    .then(function(permissionStatus) {
-                        if (permissionStatus.state === 'granted') {
-                            // Already have permission, get position
-                            getCurrentPosition();
-                            locationPrompt.style.display = 'none';
-                        } else if (permissionStatus.state === 'prompt') {
-                            // Will need to ask for permission
-                            locationStatus.textContent = "Click 'Allow' when your browser asks for location access";
-                            locationStatus.style.color = '#8A2BE2';
-                            // Directly request location to trigger browser prompt
-                            navigator.geolocation.getCurrentPosition(
-                                function(position) {
-                                    locationPrompt.style.display = 'none';
-                                    getCurrentPosition();
-                                },
-                                function(error) {
-                                    handleLocationError(error);
-                                },
-                                {
-                                    enableHighAccuracy: true,
-                                    timeout: 10000,
-                                    maximumAge: 0
-                                }
-                            );
-                        } else if (permissionStatus.state === 'denied') {
-                            // Permission was denied
-                            locationStatus.textContent = "Location access is blocked. Please enable it in your browser settings and refresh the page.";
-                            locationStatus.style.color = '#dc3545';
-                            locationPrompt.style.display = 'block';
-                            attendanceForm.style.display = 'none';
-                        }
-
-                        // Listen for changes in permission
-                        permissionStatus.onchange = function() {
-                            if (this.state === 'granted') {
-                                getCurrentPosition();
-                            }
-                        };
-                    })
-                    .catch(function(error) {
-                        // Handle errors with permission check
-                        console.error('Error checking permission:', error);
-                        // Fallback to direct geolocation request
-                        navigator.geolocation.getCurrentPosition(
-                            function(position) {
-                                getCurrentPosition();
-                            },
-                            handleLocationError,
-                            {
-                                enableHighAccuracy: true,
-                                timeout: 10000,
-                                maximumAge: 0
-                            }
-                        );
-                    });
-            } else {
-                locationStatus.textContent = "Geolocation is not supported by your browser";
-                locationPrompt.style.display = 'none';
-                attendanceForm.style.display = 'none';
-            }
+        // --- Professor dashboard logic (placeholder) ---
+        async function renderProfessorDashboard() {
+            document.getElementById('professor-attendance-list').innerHTML =
+                '<p>Professor dashboard integration with backend is required.</p>';
         }
 
-        function handleLocationError(error) {
-            const locationStatus = document.getElementById('location-status');
-            const locationPrompt = document.getElementById('location-prompt');
-            const attendanceForm = document.getElementById('attendance-form');
-
-            locationStatus.style.color = '#dc3545';
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    locationStatus.textContent = "Location access was denied. Please enable it in your browser settings and refresh the page";
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    locationStatus.textContent = "Location information is unavailable. Please check your device settings";
-                    break;
-                case error.TIMEOUT:
-                    locationStatus.textContent = "Location request timed out. Please try again";
-                    break;
-                default:
-                    locationStatus.textContent = "An unknown error occurred while getting your location";
-            }
-            locationPrompt.style.display = 'block';
-            attendanceForm.style.display = 'none';
-        }
-
-        function getCurrentPosition() {
-            const locationPrompt = document.getElementById('location-prompt');
-            const locationStatus = document.getElementById('location-status');
-            const attendanceForm = document.getElementById('attendance-form');
-
-            navigator.geolocation.getCurrentPosition(
-                function(position) {
-                    locationPrompt.style.display = 'none';
-                    locationStatus.style.color = '#9370DB';
-                    locationStatus.textContent = 'Location verified ✓';
-                    attendanceForm.style.display = 'block';
-                    
-                    const userLat = position.coords.latitude;
-                    const userLng = position.coords.longitude;
-                    
-                    checkLocation(position);
-                },
-                handleLocationError,
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-        }
-
-        // --- Professor dashboard logic ---
-        function renderProfessorDashboard() {
-            const users = getUsers();
-            const attendance = getAttendance();
-            const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
-            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
-            const assignedCourses = professorCourses[loggedInUser] || [];
-            let html = '';
-
-            if (assignedCourses.length === 0) {
-                html = '<p>You have no assigned courses.</p>';
-            } else {
-                assignedCourses.forEach(course => {
-                    html += `<h3 style="margin-top:24px;">${course}</h3>`;
-                    html += `<table style="width:100%;border-collapse:collapse;">
-                        <thead>
-                            <tr>
-                                <th style="border-bottom:1px solid #ccc;text-align:left;padding:6px;">Student Email</th>
-                                <th style="border-bottom:1px solid #ccc;text-align:left;padding:6px;">Status</th>
-                                <th style="border-bottom:1px solid #ccc;text-align:left;padding:6px;">Date & Time</th>
-                            </tr>
-                        </thead>
-                        <tbody>`;
-                    Object.entries(users).forEach(([email, u]) => {
-                        if (u.role === 'student' && (studentCourses[email] || []).includes(course)) {
-                            const record = attendance[email]?.[course];
-                            html += `<tr>
-                                <td style="padding:6px;">${email}</td>
-                                <td style="padding:6px;">${record ? record.status : '-'}</td>
-                                <td style="padding:6px;">${record ? record.timestamp : '-'}</td>
-                            </tr>`;
-                        }
-                    });
-                    html += '</tbody></table>';
-                });
-            }
-            document.getElementById('professor-attendance-list').innerHTML = html;
-        }
-
-        // Add event listeners to navigation links
+        // --- Navigation event listeners and other unchanged logic ---
         document.querySelectorAll('nav a').forEach(link => {
             link.addEventListener('click', function (e) {
                 e.preventDefault();
@@ -746,7 +499,6 @@
             });
         });
 
-        // Restrict "New user? Register here" to Admin role only
         document.getElementById('go-to-register').addEventListener('click', function(e) {
             e.preventDefault();
             if (selectedRole === 'admin') {
@@ -759,13 +511,11 @@
             }
         });
 
-        // Add this block to handle "Back to Login" from register
         document.getElementById('back-to-login').addEventListener('click', function(e) {
             e.preventDefault();
             showSection('login');
         });
 
-        // Add logout functionality
         function updateLogoutLink() {
             const logoutLink = document.getElementById('logout-link');
             if (loggedInUser) {
@@ -775,9 +525,6 @@
                     loggedInUser = null;
                     loggedInRole = null;
                     selectedRole = null;
-                    localStorage.removeItem('currentUser');
-                    localStorage.removeItem('currentRole');
-                    document.getElementById('make-attendance').classList.add('nav-disabled');
                     showRoleSelection();
                     logoutLink.style.display = 'none';
                 };
