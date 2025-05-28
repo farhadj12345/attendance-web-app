@@ -1,0 +1,36 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Make Attendance</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Make Your Attendance</h1>
+        <nav>
+            <a href="index.html">Home</a>
+            <a href="about.html">About</a>
+            <a href="contact.html">Contact</a>
+            <a href="make-attendance.html">Make Attendance</a> <!-- Added link -->
+        </nav>
+    </header>
+    <div class="container">
+        <h2>Select Your Course</h2>
+        <form action="/submit-attendance" method="GET">
+            <label for="course">Course:</label>
+            <select id="course" name="course">
+                <option value="math">Mathematics</option>
+                <option value="science">Science</option>
+                <option value="history">History</option>
+            </select>
+            <button type="submit">Make Attendance</button>
+        </form>
+    </div>
+    <footer>
+        <p>&copy; 2025 Mobile Attendance App</p>
+    </footer>
+</body>
+</html>
