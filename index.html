@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Attendance App</title>
+    <link rel="stylesheet" href="./styles.css">
+    <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Roboto', Arial, sans-serif;
+            background: linear-gradient(120deg, #e6e6fa 0%, #c3b1e1 100%); /* Changed to purple gradient */
+            min-height: 100vh;
+            margin: 0;
+        }
+        header {
+            background: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+            padding: 24px 0 12px 0;
+            text-align: center;
+        }
+        nav {
+            margin-top: 10px;
+        }
+        nav a {
+            color: #8A2BE2; /* Changed to Blue Violet */
+            text-decoration: none;
+            margin: 0 18px;
+            font-weight: 500;
+            font-size: 1.1em;
+            transition: color 0.2s;
+        }
+        nav a:hover {
+            color: #6A0DAD; /* Changed to Darker Purple */
+            text-decoration: underline;
+        }
+        .container {
+            max-width: 420px;
+            margin: 40px auto 0 auto;
+            background: #fff;
+            border-radius: 18px;
+            box-shadow: 0 6px 32px rgba(0,0,0,0.09);
+            padding: 36px 32px 28px 32px;
+        }
+        section {
+            animation: fadeIn 0.5s;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px);}
+            to { opacity: 1; transform: translateY(0);}
+        }
+        h1, h2 {
+            color: #6A0DAD; /* Changed to Darker Purple */
+            margin-bottom: 18px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+        label {
+            font-weight: 500;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        input[type="email"], input[type="password"], select {
+            padding: 10px;
+            border: 1px solid #d8bfd8; /* Changed to Thistle */
+            border-radius: 6px;
+            font-size: 1em;
+            background: #f8f0fc; /* Changed to Lighter Purple/Pink */
+            transition: border 0.2s;
+        }
+        input[type="email"]:focus, input[type="password"]:focus, select:focus {
+            border: 1.5px solid #8A2BE2; /* Changed to Blue Violet */
+            outline: none;
+        }
+        .cta-button, button[type="submit"] {
+            background: linear-gradient(90deg, #8A2BE2 60%, #9932CC 100%); /* Changed to purple gradient */
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 0;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            box-shadow: 0 2px 8px rgba(138,43,226,0.08); /* Adjusted shadow color */
+            transition: background 0.2s, box-shadow 0.2s;
+        }
+        .cta-button:hover, button[type="submit"]:hover {
+            background: linear-gradient(90deg, #6A0DAD 60%, #8A2BE2 100%); /* Changed to darker purple gradient */
+            box-shadow: 0 4px 16px rgba(138,43,226,0.13); /* Adjusted shadow color */
+        }
+        .hidden {
+            display: none;
+        }
+        #attendance-result {
+            margin-top: 18px;
+            background: #f3e6ff; /* Changed to Pale Lavender */
+            color: #6A0DAD; /* Changed to Darker Purple */
+            padding: 14px;
+            border-radius: 6px;
+            font-weight: 500;
+            text-align: center;
+            box-shadow: 0 1px 4px rgba(138,43,226,0.07); /* Adjusted shadow color */
+        }
+        #login-error, #register-error {
+            margin-top: 4px;
+            font-size: 0.98em;
+        }
+        .radio-group {
+            display: flex;
+            gap: 24px;
+            margin: 8px 0 0 0;
+        }
+        .radio-group label {
+            font-weight: 400;
+            color: #444;
+        }
+        @media (max-width: 600px) {
+            .container {
+                max-width: 98vw;
+                padding: 18px 6vw 18px 6vw;
+            }
+            nav a {
+                margin: 0 8px;
+            }
+        }
+        footer {
+            text-align: center;
+            color: #A9A9A9; /* Adjusted to a neutral dark gray */
+            font-size: 0.98em;
+            margin: 40px 0 10px 0;
+        }
+        .nav-disabled {
+            opacity: 0.5;
+            pointer-events: none;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1 id="main-title">Welcome to the Mobile Attendance Web-App</h1>
+        <nav>
+            <a href="#" data-page="home">Home</a>
+            <a href="#" data-page="about">About</a>
+            <a href="#" data-page="contact">Contact</a>
+            <a href="#" data-page="make-attendance" id="make-attendance" class="nav-disabled">Make Attendance</a>
+            <a href="#" id="logout-link" style="color:#d9534f; display:none;">Logout</a>
+        </nav>
+    </header>
+    <div class="container">
+        <section id="role-selection-section">
+            <h2>Select Your Role</h2>
+            <div class="radio-group" style="justify-content:center;">
+                <label>
+                    <input type="radio" name="role-select" value="student"> Student
+                </label>
+                <label>
+                    <input type="radio" name="role-select" value="professor"> Professor
+                </label>
+                <label>
+                    <input type="radio" name="role-select" value="admin"> Admin
+                </label>
+            </div>
+            <button id="role-select-btn" class="cta-button" style="margin-top:18px;">Continue</button>
+        </section>
+        <section id="home-section" class="hidden">
+            <h2>Track Attendance Easily</h2>
+            <p>Welcome to the Mobile Attendance Web-App, your solution for managing attendance efficiently. Start by selecting your course and marking your attendance.</p>
+            </section>
+        <section id="about-section" class="hidden">
+            <h2>About</h2>
+            <p>This app helps you track and manage attendance for your courses easily and efficiently.</p>
+        </section>
+        <section id="contact-section" class="hidden">
+            <h2>Contact</h2>
+            <p>For support, email us at support@attendanceapp.com.</p>
+        </section>
+        <section id="login-section" class="hidden">
+            <h2>Login</h2>
+            <form id="login-form">
+                <label for="login-email">Email:</label>
+                <input type="email" id="login-email" name="email" required>
+                <label for="login-password">Password:</label>
+                <input type="password" id="login-password" name="password" required>
+                <button type="submit">Login</button>
+                <div id="login-error" style="color:red;" class="hidden"></div>
+            </form>
+            <div style="margin-top:10px; text-align:center;">
+                <a href="#" id="forgot-password-link" style="color:#8A2BE2;">Forgot Password?</a>
+                <br><a href="#" id="go-to-register" style="color:#8A2BE2;">New user? Register here</a>
+            </div>
+        </section>
+        <section id="forgot-password-section" class="hidden">
+            <h2>Reset Password</h2>
+            <form id="forgot-password-form">
+                <label for="forgot-email">Email:</label>
+                <input type="email" id="forgot-email" name="email" required>
+                <label for="forgot-new-password">New Password:</label>
+                <input type="password" id="forgot-new-password" name="new-password" required>
+                <button type="submit">Reset Password</button>
+                <div id="forgot-password-error" style="color:red;" class="hidden"></div>
+                <div id="forgot-password-success" style="color:green;" class="hidden"></div>
+            </form>
+            <div style="margin-top:10px; text-align:center;">
+                <a href="#" id="forgot-to-login-link" style="color:#8A2BE2;">Back to Login</a>
+            </div>
+        </section>
+        <section id="make-attendance-section" class="hidden">
+            <h2>Select Your Course</h2>
+            <div id="location-status" style="margin-bottom: 15px; color: #dc3545;"></div>
+            <div id="location-prompt" class="status-message" style="text-align: center; margin-bottom: 20px;">
+                <p>Please enable location access to mark attendance</p>
+                <button onclick="requestLocation()" class="cta-button">Enable Location Access</button>
+            </div>
+            <form id="attendance-form" style="display: none;">
+                <label for="course">Course:</label>
+                <select id="course" name="course" required>
+                    </select>
+                <div class="radio-group">
+                    <label>
+                        <input type="radio" name="status" value="Present" required> Present
+                    </label>
+                    <label>
+                        <input type="radio" name="status" value="Absent" required> Absent
+                    </label>
+                </div>
+                <button type="submit">Mark Attendance</button>
+            </form>
+            <div id="attendance-result" class="hidden"></div>
+        </section>
+        <section id="professor-dashboard-section" class="hidden">
+            <h2>Your Students' Attendance</h2>
+            <div id="professor-attendance-list"></div>
+        </section>
+        <section id="register-section" class="hidden">
+            <h2>Register</h2>
+            <form id="register-form">
+                <label for="register-email">Email:</label>
+                <input type="email" id="register-email" name="email" required>
+                <label for="register-password">Password:</label>
+                <input type="password" id="register-password" name="password" required>
+                <button type="submit">Register</button>
+                <div id="register-error" style="color:red;" class="hidden"></div>
+            </form>
+            <div style="margin-top:10px; text-align:center;">
+                <a href="#" id="back-to-login" style="color:#8A2BE2;">Back to Login</a>
+            </div>
+        </section>
+    </div>
+    <footer>
+        <p>&copy; 2025 Mobile Attendance App</p>
+    </footer>
+    <script>
+        // --- Storage helpers ---
+        function getUsers() {
+            return JSON.parse(localStorage.getItem('users') || '{}');
+        }
+        function setUsers(users) {
+            localStorage.setItem('users', JSON.stringify(users));
+        }
+        function getAttendance() {
+            return JSON.parse(localStorage.getItem('attendance') || '{}');
+        }
+        function setAttendance(att) {
+            localStorage.setItem('attendance', JSON.stringify(att));
+        }
+
+        // --- State ---
+        let loggedInUser = null;
+        let loggedInRole = null;
+        let selectedRole = null;
+
+        // --- Section references ---
+        const sections = {
+            role: document.getElementById('role-selection-section'),
+            home: document.getElementById('home-section'),
+            about: document.getElementById('about-section'),
+            contact: document.getElementById('contact-section'),
+            'make-attendance': document.getElementById('make-attendance-section'),
+            login: document.getElementById('login-section'),
+            'professor-dashboard': document.getElementById('professor-dashboard-section'),
+            'forgot-password-section': document.getElementById('forgot-password-section'),
+            'register': document.getElementById('register-section')
+        };
+
+        function showOnly(sectionKey) {
+            Object.values(sections).forEach(sec => sec.classList.add('hidden'));
+            if (sections[sectionKey]) sections[sectionKey].classList.remove('hidden');
+        }
+
+        function showRoleSelection() {
+            showOnly('role');
+            document.getElementById('main-title').textContent = "Welcome to the Mobile Attendance Web-App";
+        }
+
+        function showSection(page) {
+            showOnly(page);
+            document.getElementById('main-title').textContent =
+                page === 'home' ? 'Welcome to the Mobile Attendance Web-App'
+                : page === 'about' ? 'About'
+                : page === 'contact' ? 'Contact'
+                : page === 'login' ? 'Login'
+                : page === 'professor-dashboard' ? "Professor Dashboard"
+                : 'Make Your Attendance';
+            if (page === 'login') {
+                document.getElementById('login-form').reset();
+                document.getElementById('login-error').classList.add('hidden');
+            }
+            if (page === 'make-attendance') {
+                document.getElementById('location-prompt').style.display = 'block';
+                document.getElementById('attendance-form').style.display = 'none';
+                document.getElementById('attendance-result').classList.add('hidden');
+                requestLocation(); // Auto-request on page load
+
+                // Show only assigned courses for students
+                const courseSelect = document.getElementById('course');
+                courseSelect.innerHTML = '';
+                let courses = [];
+                if (loggedInRole === 'student') {
+                    const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+                    courses = studentCourses[loggedInUser] || [];
+                } else {
+                    courses = JSON.parse(localStorage.getItem('courses') || '[]');
+                }
+                courses.forEach(course => {
+                    const option = document.createElement('option');
+                    option.value = course;
+                    option.textContent = course;
+                    courseSelect.appendChild(option);
+                });
+
+                if ("geolocation" in navigator) {
+                    navigator.geolocation.getCurrentPosition(
+                        checkLocation,
+                        error => {
+                            const locationStatus = document.getElementById('location-status');
+                            locationStatus.textContent = 'Please enable location access to mark attendance';
+                            document.getElementById('attendance-form').style.display = 'none';
+                        },
+                        {
+                            enableHighAccuracy: true,
+                            maximumAge: 30000,
+                            timeout: 27000
+                        }
+                    );
+                } else {
+                    const locationStatus = document.getElementById('location-status');
+                    locationStatus.textContent = 'Location services are not supported by your browser';
+                    document.getElementById('attendance-form').style.display = 'none';
+                }
+            }
+            if (page === 'professor-dashboard') {
+                renderProfessorDashboard();
+            }
+            updateLogoutLink();
+        }
+
+        // --- Role selection logic ---
+        document.getElementById('role-select-btn').onclick = function() {
+            const role = document.querySelector('input[name="role-select"]:checked')?.value;
+            if (!role) {
+                alert("Please select a role.");
+                return;
+            }
+            selectedRole = role;
+            showSection('login');
+        };
+
+        // --- Forgot Password navigation ---
+        document.getElementById('forgot-password-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            showOnly('forgot-password-section');
+            document.getElementById('main-title').textContent = "Reset Password";
+            document.getElementById('forgot-password-form').reset();
+            document.getElementById('forgot-password-error').classList.add('hidden');
+            document.getElementById('forgot-password-success').classList.add('hidden');
+        });
+        document.getElementById('forgot-to-login-link').addEventListener('click', function(e) {
+            e.preventDefault();
+            showSection('login');
+        });
+
+        // --- Login logic ---
+        document.getElementById('login-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value.trim();
+            const password = document.getElementById('login-password').value;
+            const users = getUsers();
+            const errorDiv = document.getElementById('login-error');
+            errorDiv.classList.add('hidden');
+            if (!users[email] || users[email].password !== password || users[email].role !== selectedRole) {
+                errorDiv.textContent = "Wrong password or email.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            loggedInUser = email;
+            loggedInRole = selectedRole;
+            localStorage.setItem('currentUser', email);
+            localStorage.setItem('currentRole', selectedRole); // Add this line to store the role
+            
+            // Enable make attendance link if student
+            if (loggedInRole === 'student') {
+                document.getElementById('make-attendance').classList.remove('nav-disabled');
+                window.location.href = 'index.html';
+            } else if (loggedInRole === 'admin') {
+                window.location.href = 'admin.html';
+            } else {
+                window.location.href = 'index.html';
+            }
+        });
+
+        // --- Forgot Password logic ---
+        document.getElementById('forgot-password-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const email = document.getElementById('forgot-email').value.trim();
+            const newPassword = document.getElementById('forgot-new-password').value;
+            const users = getUsers();
+            const errorDiv = document.getElementById('forgot-password-error');
+            const successDiv = document.getElementById('forgot-password-success');
+            errorDiv.classList.add('hidden');
+            successDiv.classList.add('hidden');
+            if (!users[email]) {
+                errorDiv.textContent = "No user found with this email.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            if (newPassword.length < 6) {
+                errorDiv.textContent = "Password must be at least 6 characters.";
+                errorDiv.classList.remove('hidden');
+                return;
+            }
+            users[email].password = newPassword;
+            setUsers(users);
+            successDiv.textContent = "Password reset successful! You can now login.";
+            successDiv.classList.remove('hidden');
+            setTimeout(() => {
+                showSection('login');
+            }, 1200);
+        });
+
+        // --- Attendance logic ---
+        document.getElementById('attendance-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            navigator.geolocation.getCurrentPosition(
+                position => {
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    const inRange = ALLOWED_LOCATIONS.some(location => {
+                        const distance = calculateDistance(
+                            userLat, userLng,
+                            location.lat, location.lng
+                        );
+                        return distance <= location.radius;
+                    });
+
+                    if (inRange) {
+                        const course = document.getElementById('course').value;
+                        const status = this.elements['status'].value;
+                        const resultDiv = document.getElementById('attendance-result');
+                        const attendance = getAttendance();
+                        if (!attendance[loggedInUser]) attendance[loggedInUser] = {};
+                        attendance[loggedInUser][course] = {
+                            status: status,
+                            timestamp: new Date().toLocaleString(),
+                            location: `${userLat},${userLng}`
+                        };
+                        setAttendance(attendance);
+                        resultDiv.textContent = `Attendance marked as "${status}" for course "${course}".`;
+                        resultDiv.classList.remove('hidden');
+                        this.classList.add('hidden');
+                    } else {
+                        alert('You must be at an allowed location to mark attendance.');
+                    }
+                },
+                error => {
+                    alert('Unable to verify location. Please enable location access.');
+                }
+            );
+        });
+
+        // --- Location restriction helpers ---
+        const ALLOWED_LOCATIONS = [
+            {
+                name: "Home (Primary)",
+                lat: 39.9946,
+                lng: 32.8174,
+                radius: 100 // meters
+            },
+            {
+                name: "Home (Alternate / Nearby)",
+                lat: 39.99595,
+                lng: 32.81676,
+                radius: 100 // meters
+            },
+            {
+                name: "Ostim Teknik Üniversitesi",
+                lat: 39.9617,
+                lng: 32.7426,
+                radius: 10000 // meters (max radius for full campus and area)
+            },
+            {
+                name: "Coffee Lab Çankaya",
+                lat: 39.91670,
+                lng: 32.85583,
+                radius: 100 // meters
+            }
+        ];
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            const R = 6371e3; // meters
+            const φ1 = lat1 * Math.PI/180;
+            const φ2 = lat2 * Math.PI/180;
+            const Δφ = (lat2-lat1) * Math.PI/180;
+            const Δλ = (lon2-lon1) * Math.PI/180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) +
+                      Math.cos(φ1) * Math.cos(φ2) *
+                      Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function checkLocation(position) {
+            const userLat = position.coords.latitude;
+            const userLng = position.coords.longitude;
+            const inRange = ALLOWED_LOCATIONS.some(location => {
+                const distance = calculateDistance(
+                    userLat, userLng,
+                    location.lat, location.lng
+                );
+                return distance <= location.radius;
+            });
+
+            const locationStatus = document.getElementById('location-status');
+            const attendanceForm = document.getElementById('attendance-form');
+
+            if (inRange) {
+                locationStatus.style.color = '#9370DB'; /* Changed to Medium Purple for success */
+                locationStatus.textContent = 'You are in an allowed location ✓';
+                attendanceForm.style.display = 'block';
+            } else {
+                locationStatus.style.color = '#dc3545';
+                locationStatus.textContent = 'You must be at OSTİM Technical University or your home to mark attendance';
+                attendanceForm.style.display = 'none';
+            }
+        }
+
+        function requestLocation() {
+            if ("geolocation" in navigator) {
+                const locationPrompt = document.getElementById('location-prompt');
+                const locationStatus = document.getElementById('location-status');
+                const attendanceForm = document.getElementById('attendance-form');
+
+                // First check if we already have permission
+                navigator.permissions.query({ name: 'geolocation' })
+                    .then(function(permissionStatus) {
+                        if (permissionStatus.state === 'granted') {
+                            // Already have permission, get position
+                            getCurrentPosition();
+                            locationPrompt.style.display = 'none';
+                        } else if (permissionStatus.state === 'prompt') {
+                            // Will need to ask for permission
+                            locationStatus.textContent = "Click 'Allow' when your browser asks for location access";
+                            locationStatus.style.color = '#8A2BE2';
+                            // Directly request location to trigger browser prompt
+                            navigator.geolocation.getCurrentPosition(
+                                function(position) {
+                                    locationPrompt.style.display = 'none';
+                                    getCurrentPosition();
+                                },
+                                function(error) {
+                                    handleLocationError(error);
+                                },
+                                {
+                                    enableHighAccuracy: true,
+                                    timeout: 10000,
+                                    maximumAge: 0
+                                }
+                            );
+                        } else if (permissionStatus.state === 'denied') {
+                            // Permission was denied
+                            locationStatus.textContent = "Location access is blocked. Please enable it in your browser settings and refresh the page.";
+                            locationStatus.style.color = '#dc3545';
+                            locationPrompt.style.display = 'block';
+                            attendanceForm.style.display = 'none';
+                        }
+
+                        // Listen for changes in permission
+                        permissionStatus.onchange = function() {
+                            if (this.state === 'granted') {
+                                getCurrentPosition();
+                            }
+                        };
+                    })
+                    .catch(function(error) {
+                        // Handle errors with permission check
+                        console.error('Error checking permission:', error);
+                        // Fallback to direct geolocation request
+                        navigator.geolocation.getCurrentPosition(
+                            function(position) {
+                                getCurrentPosition();
+                            },
+                            handleLocationError,
+                            {
+                                enableHighAccuracy: true,
+                                timeout: 10000,
+                                maximumAge: 0
+                            }
+                        );
+                    });
+            } else {
+                locationStatus.textContent = "Geolocation is not supported by your browser";
+                locationPrompt.style.display = 'none';
+                attendanceForm.style.display = 'none';
+            }
+        }
+
+        function handleLocationError(error) {
+            const locationStatus = document.getElementById('location-status');
+            const locationPrompt = document.getElementById('location-prompt');
+            const attendanceForm = document.getElementById('attendance-form');
+
+            locationStatus.style.color = '#dc3545';
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    locationStatus.textContent = "Location access was denied. Please enable it in your browser settings and refresh the page";
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    locationStatus.textContent = "Location information is unavailable. Please check your device settings";
+                    break;
+                case error.TIMEOUT:
+                    locationStatus.textContent = "Location request timed out. Please try again";
+                    break;
+                default:
+                    locationStatus.textContent = "An unknown error occurred while getting your location";
+            }
+            locationPrompt.style.display = 'block';
+            attendanceForm.style.display = 'none';
+        }
+
+        function getCurrentPosition() {
+            const locationPrompt = document.getElementById('location-prompt');
+            const locationStatus = document.getElementById('location-status');
+            const attendanceForm = document.getElementById('attendance-form');
+
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    locationPrompt.style.display = 'none';
+                    locationStatus.style.color = '#9370DB';
+                    locationStatus.textContent = 'Location verified ✓';
+                    attendanceForm.style.display = 'block';
+                    
+                    const userLat = position.coords.latitude;
+                    const userLng = position.coords.longitude;
+                    
+                    checkLocation(position);
+                },
+                handleLocationError,
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        // --- Professor dashboard logic ---
+        function renderProfessorDashboard() {
+            const users = getUsers();
+            const attendance = getAttendance();
+            const professorCourses = JSON.parse(localStorage.getItem('professorCourses') || '{}');
+            const studentCourses = JSON.parse(localStorage.getItem('studentCourses') || '{}');
+            const assignedCourses = professorCourses[loggedInUser] || [];
+            let html = '';
+
+            if (assignedCourses.length === 0) {
+                html = '<p>You have no assigned courses.</p>';
+            } else {
+                assignedCourses.forEach(course => {
+                    html += `<h3 style="margin-top:24px;">${course}</h3>`;
+                    html += `<table style="width:100%;border-collapse:collapse;">
+                        <thead>
+                            <tr>
+                                <th style="border-bottom:1px solid #ccc;text-align:left;padding:6px;">Student Email</th>
+                                <th style="border-bottom:1px solid #ccc;text-align:left;padding:6px;">Status</th>
+                                <th style="border-bottom:1px solid #ccc;text-align:left;padding:6px;">Date & Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>`;
+                    Object.entries(users).forEach(([email, u]) => {
+                        if (u.role === 'student' && (studentCourses[email] || []).includes(course)) {
+                            const record = attendance[email]?.[course];
+                            html += `<tr>
+                                <td style="padding:6px;">${email}</td>
+                                <td style="padding:6px;">${record ? record.status : '-'}</td>
+                                <td style="padding:6px;">${record ? record.timestamp : '-'}</td>
+                            </tr>`;
+                        }
+                    });
+                    html += '</tbody></table>';
+                });
+            }
+            document.getElementById('professor-attendance-list').innerHTML = html;
+        }
+
+        // Add event listeners to navigation links
+        document.querySelectorAll('nav a').forEach(link => {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                const page = this.getAttribute('data-page');
+                if (page && sections[page]) {
+                    showSection(page);
+                }
+            });
+        });
+
+        // Restrict "New user? Register here" to Admin role only
+        document.getElementById('go-to-register').addEventListener('click', function(e) {
+            e.preventDefault();
+            if (selectedRole === 'admin') {
+                showOnly('register');
+                document.getElementById('main-title').textContent = "Register";
+                document.getElementById('register-form').reset();
+                document.getElementById('register-error').classList.add('hidden');
+            } else {
+                alert('Only Admins can register new users.');
+            }
+        });
+
+        // Add this block to handle "Back to Login" from register
+        document.getElementById('back-to-login').addEventListener('click', function(e) {
+            e.preventDefault();
+            showSection('login');
+        });
+
+        // Add logout functionality
+        function updateLogoutLink() {
+            const logoutLink = document.getElementById('logout-link');
+            if (loggedInUser) {
+                logoutLink.style.display = '';
+                logoutLink.onclick = function(e) {
+                    e.preventDefault();
+                    loggedInUser = null;
+                    loggedInRole = null;
+                    selectedRole = null;
+                    localStorage.removeItem('currentUser');
+                    localStorage.removeItem('currentRole');
+                    document.getElementById('make-attendance').classList.add('nav-disabled');
+                    showRoleSelection();
+                    logoutLink.style.display = 'none';
+                };
+            } else {
+                logoutLink.style.display = 'none';
+                logoutLink.onclick = null;
+            }
+        }
+
+        // Initialize app on load
+        showRoleSelection();
+        updateLogoutLink();
+
+    </script>
+</body>
+</html>
