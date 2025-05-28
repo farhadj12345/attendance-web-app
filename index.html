@@ -255,6 +255,19 @@
         <p>&copy; 2025 Mobile Attendance App</p>
     </footer>
     <script>
+        // --- Pre-populate localStorage with a default admin if empty ---
+        (function() {
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (Object.keys(users).length === 0) {
+                users["admin@example.com"] = {
+                    password: "admin123",
+                    role: "admin"
+                };
+                localStorage.setItem('users', JSON.stringify(users));
+                // Optionally, log this for debugging:
+                console.log("Default admin created: admin@example.com / admin123");
+            }
+        })();
         // --- Storage helpers ---
         function getUsers() {
             return JSON.parse(localStorage.getItem('users') || '{}');
@@ -392,6 +405,7 @@
             const users = getUsers();
             const errorDiv = document.getElementById('login-error');
             errorDiv.classList.add('hidden');
+            console.log('Users at login:', users, 'Trying:', email, password, selectedRole);
             if (!users[email] || users[email].password !== password || users[email].role !== selectedRole) {
                 errorDiv.textContent = "Wrong password or email.";
                 errorDiv.classList.remove('hidden');
