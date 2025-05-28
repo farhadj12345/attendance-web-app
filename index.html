@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mobile Attendance App</title>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="styles.css">
     <link href="https://fonts.googleapis.com/css?family=Roboto:400,700&display=swap" rel="stylesheet">
     <style>
         body {
@@ -255,33 +255,6 @@
         <p>&copy; 2025 Mobile Attendance App</p>
     </footer>
     <script>
-        // --- Pre-populate localStorage with a default admin if empty ---
-        (function() {
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            if (Object.keys(users).length === 0) {
-                users["admin@example.com"] = {
-                    password: "admin123",
-                    role: "admin"
-                };
-                localStorage.setItem('users', JSON.stringify(users));
-                // Optionally, log this for debugging:
-                console.log("Default admin created: admin@example.com / admin123");
-            }
-            // Pre-populate courses if empty
-            if (!localStorage.getItem('courses')) {
-                localStorage.setItem('courses', JSON.stringify([
-                    "Math 101", "Physics 201", "Chemistry 301"
-                ]));
-                console.log("Default courses created.");
-            }
-            // Pre-populate professorCourses and studentCourses if needed
-            if (!localStorage.getItem('professorCourses')) {
-                localStorage.setItem('professorCourses', JSON.stringify({}));
-            }
-            if (!localStorage.getItem('studentCourses')) {
-                localStorage.setItem('studentCourses', JSON.stringify({}));
-            }
-        })();
         // --- Storage helpers ---
         function getUsers() {
             return JSON.parse(localStorage.getItem('users') || '{}');
@@ -419,7 +392,6 @@
             const users = getUsers();
             const errorDiv = document.getElementById('login-error');
             errorDiv.classList.add('hidden');
-            console.log('Users at login:', users, 'Trying:', email, password, selectedRole);
             if (!users[email] || users[email].password !== password || users[email].role !== selectedRole) {
                 errorDiv.textContent = "Wrong password or email.";
                 errorDiv.classList.remove('hidden');
@@ -433,11 +405,11 @@
             // Enable make attendance link if student
             if (loggedInRole === 'student') {
                 document.getElementById('make-attendance').classList.remove('nav-disabled');
-                window.location.href = 'index.html';
+                showSection('make-attendance');
             } else if (loggedInRole === 'admin') {
                 window.location.href = 'admin.html';
             } else {
-                window.location.href = 'index.html';
+                showSection('professor-dashboard');
             }
         });
 
@@ -764,28 +736,6 @@
             e.preventDefault();
             showSection('login');
         });
-
-        // Add logout functionality
-        function updateLogoutLink() {
-            const logoutLink = document.getElementById('logout-link');
-            if (loggedInUser) {
-                logoutLink.style.display = '';
-                logoutLink.onclick = function(e) {
-                    e.preventDefault();
-                    loggedInUser = null;
-                    loggedInRole = null;
-                    selectedRole = null;
-                    localStorage.removeItem('currentUser');
-                    localStorage.removeItem('currentRole');
-                    document.getElementById('make-attendance').classList.add('nav-disabled');
-                    showRoleSelection();
-                    logoutLink.style.display = 'none';
-                };
-            } else {
-                logoutLink.style.display = 'none';
-                logoutLink.onclick = null;
-            }
-        }
 
         // Initialize app on load
         showRoleSelection();
